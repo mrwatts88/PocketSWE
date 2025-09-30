@@ -17,6 +17,10 @@ export const Colors = {
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
     danger: "#dc2626",
+    codeLineEven: "rgba(0, 0, 0, 0.02)",
+    codeLineOdd: "rgba(0, 0, 0, 0.08)",
+    codeBackground: "rgba(0, 0, 0, 0.08)",
+    selectedLine: "rgba(10, 126, 164, 0.15)",
   },
   dark: {
     text: "#ECEDEE",
@@ -26,6 +30,10 @@ export const Colors = {
     tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
     danger: "#ef4444",
+    codeLineEven: "rgba(0, 0, 0, 0.04)",
+    codeLineOdd: "rgba(0, 0, 0, 0.2)",
+    codeBackground: "rgba(0, 0, 0, 0.2)",
+    selectedLine: "rgba(255, 255, 255, 0.1)",
   },
 };
 

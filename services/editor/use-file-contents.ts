@@ -1,4 +1,5 @@
 import { fetcher } from "@/services/fetcher";
+import { useHostUrl } from "@/hooks/use-host-url";
 import useSWR from "swr";
 
 interface FileResponse {
@@ -7,7 +8,8 @@ interface FileResponse {
 }
 
 export function useFileContents(filePath?: string) {
-  const url = filePath ? `http://localhost:3000/file/${encodeURIComponent(filePath)}` : null;
+  const { url: hostUrl } = useHostUrl();
+  const url = filePath && hostUrl ? `${hostUrl}/file/${encodeURIComponent(filePath)}` : null;
   const { data, error, isLoading } = useSWR<FileResponse>(url, url ? fetcher : null);
 
   return {
