@@ -79,6 +79,7 @@ export default function TabTwoScreen() {
                 <FontAwesome name="times" size={16} color="#9BA1A6" />
               </Pressable>
             </ThemedView>
+            {tabMode === "classic" ? <TabScrubberClassic /> : <TabScrubberDrag />}
             <ScrollView style={styles.scrollView}>
               {isLoading ? (
                 <ThemedView style={styles.loadingContainer}>
@@ -128,7 +129,6 @@ export default function TabTwoScreen() {
                 </ThemedView>
               )}
             </ScrollView>
-            {tabMode === "classic" ? <TabScrubberClassic /> : <TabScrubberDrag />}
           </ThemedView>
         )}
       </SafeAreaView>
@@ -153,46 +153,98 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 32,
+    padding: 24,
   },
   placeholderIcon: {
     marginBottom: 16,
+    opacity: 0.5,
   },
   placeholderTitle: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "600",
     marginBottom: 8,
     textAlign: "center",
   },
   placeholderMessage: {
-    fontSize: 16,
-    textAlign: "center",
+    fontSize: 14,
     opacity: 0.7,
-    lineHeight: 22,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 20,
   },
   placeholderButton: {
-    marginTop: 24,
+    marginTop: 8,
   },
-  fileHeader: {
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  errorIcon: {
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+    color: "#ef4444",
+  },
+  errorMessage: {
+    fontSize: 14,
+    opacity: 0.8,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  settingsButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  settingsButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  fileHeader: {
     paddingTop: 0,
     paddingBottom: 8,
     paddingHorizontal: 12,
+    alignItems: "center",
     borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  closeAllButton: {
+    padding: 8,
   },
   fileName: {
     flex: 1,
     textAlign: "center",
   },
   closeButton: {
-    padding: 4,
-    borderRadius: 4,
+    padding: 8,
   },
-  closeAllButton: {
-    padding: 4,
-    borderRadius: 4,
+  loadingContainer: {
+    padding: 16,
+  },
+  loadingText: {
+    textAlign: "center",
+    opacity: 0.7,
+  },
+  emptyContainer: {
+    padding: 24,
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  emptyText: {
+    opacity: 0.5,
+    fontStyle: "italic",
   },
   codeWrapper: {
     flexDirection: "row",
@@ -200,7 +252,7 @@ const styles = StyleSheet.create({
   lineNumberColumn: {},
   lineNumberRow: {
     height: 20,
-    paddingLeft: 4,
+    paddingLeft: 12,
   },
   codeScroll: {
     flex: 1,
@@ -224,64 +276,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 12,
     backgroundColor: "transparent",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  loadingText: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-    backgroundColor: "transparent",
-  },
-  emptyText: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  errorIcon: {
-    marginBottom: 16,
-  },
-  errorTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  errorMessage: {
-    fontSize: 16,
-    textAlign: "center",
-    opacity: 0.7,
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  settingsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  settingsButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  errorText: {
-    padding: 16,
   },
 });

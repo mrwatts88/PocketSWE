@@ -21,6 +21,14 @@ export const Colors = {
     codeLineOdd: "rgba(0, 0, 0, 0.08)",
     codeBackground: "rgba(0, 0, 0, 0.08)",
     selectedLine: "rgba(10, 126, 164, 0.15)",
+    // Terminal colors for light mode
+    terminalBackground: "#F5F2ED", // More noticeable cream/beige
+    terminalCommand: "#0066CC",
+    terminalOutput: "#333333",
+    terminalError: "#DC143C",
+    terminalPrompt: "#228B22",
+    terminalPlaceholder: "#999999",
+    terminalBorder: "#D4C4B0", // Light brown border for cream background
   },
   dark: {
     text: "#ECEDEE",
@@ -34,6 +42,14 @@ export const Colors = {
     codeLineOdd: "rgba(0, 0, 0, 0.2)",
     codeBackground: "rgba(0, 0, 0, 0.2)",
     selectedLine: "rgba(255, 255, 255, 0.1)",
+    // Terminal colors for dark mode
+    terminalBackground: "#0D1117",
+    terminalCommand: "#4CAF50",
+    terminalOutput: "#58A6FF",
+    terminalError: "#FF6B6B",
+    terminalPrompt: "#4CAF50",
+    terminalPlaceholder: "#666666",
+    terminalBorder: "#333333", // Dark border for dark background
   },
 };
 

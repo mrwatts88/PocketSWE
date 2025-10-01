@@ -85,7 +85,7 @@ export function TabScrubberDrag() {
     });
 
   return (
-    <ThemedView style={[styles.tabScrubber, { borderTopColor: codeLineOdd }]}>
+    <ThemedView style={[styles.tabScrubber]}>
       <GestureDetector gesture={panGesture}>
         <ReanimatedAnimated.View style={styles.tabContainer}>
           {openFiles.map((filePath, index) => {
@@ -121,7 +121,6 @@ export function TabScrubberDrag() {
 
 const styles = StyleSheet.create({
   tabScrubber: {
-    borderTopWidth: 1,
     paddingVertical: 8,
     maxHeight: 60,
   },

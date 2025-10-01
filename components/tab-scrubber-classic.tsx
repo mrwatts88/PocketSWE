@@ -16,7 +16,7 @@ export function TabScrubberClassic() {
   }
 
   return (
-    <ThemedView style={[styles.tabScrubber, { borderTopColor: codeLineOdd }]}>
+    <ThemedView style={[styles.tabScrubber]}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScrollContent}>
         {openFiles.map((filePath) => {
           const fileName = filePath.split("/").pop() || filePath;
@@ -53,7 +53,6 @@ export function TabScrubberClassic() {
 
 const styles = StyleSheet.create({
   tabScrubber: {
-    borderTopWidth: 1,
     paddingVertical: 8,
     maxHeight: 60,
   },
