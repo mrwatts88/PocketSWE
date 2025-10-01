@@ -6,12 +6,14 @@ import { Pressable, StyleSheet } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { FileTypeColors } from "@/constants/theme";
+import { useOpenFiles } from "@/hooks/use-open-files";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFileTree } from "@/services/editor/use-file-tree";
 import { TreeItem, getFileIcon } from "@/utils/file-tree";
 
 export function FileExplorer() {
-  const { treeData, error, isLoading } = useFileTree();
+  const { root, treeData, error, isLoading } = useFileTree();
+  const { openFile } = useOpenFiles();
   const codeLineEven = useThemeColor({}, "codeLineEven");
   const codeLineOdd = useThemeColor({}, "codeLineOdd");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -39,11 +41,9 @@ export function FileExplorer() {
       if (isDirectory) {
         toggleFolder(item.path);
       } else {
-        // Navigate to editor tab with file path
-        router.navigate({
-          pathname: "/explore",
-          params: { filePath: item.path },
-        });
+        // Open file and navigate to editor tab
+        openFile(item.path);
+        router.navigate("/explore");
       }
     };
 
@@ -105,12 +105,36 @@ export function FileExplorer() {
     return <ThemedText>No data available</ThemedText>;
   }
 
-  return <ThemedView style={styles.treeContainer}>{treeData.map((item, index) => renderTreeItem(item, 0, index))}</ThemedView>;
+  return (
+    <ThemedView style={styles.treeContainer}>
+      {root && (
+        <ThemedView style={styles.rootHeader}>
+          <FontAwesome name="folder-open" size={20} color={FileTypeColors.folder} />
+          <ThemedText style={styles.rootText}>{root}</ThemedText>
+        </ThemedView>
+      )}
+      {treeData.map((item, index) => renderTreeItem(item, 0, index))}
+    </ThemedView>
+  );
 }
 
 const styles = StyleSheet.create({
   treeContainer: {
     marginTop: 8,
+  },
+  rootHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(128, 128, 128, 0.2)",
+  },
+  rootText: {
+    fontSize: 18,
+    fontWeight: "600",
+    fontFamily: "monospace",
+    marginLeft: 12,
   },
   treeItemTouchable: {
     flexDirection: "row",

@@ -1,18 +1,23 @@
-import { useLocalSearchParams, router } from "expo-router";
-import { useMemo, useState, useEffect } from "react";
+import { FontAwesome } from "@expo/vector-icons";
+import { router } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { PixelRatio, Pressable, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FontAwesome } from "@expo/vector-icons";
 
+import { TabScrubberClassic } from "@/components/tab-scrubber-classic";
+import { TabScrubberDrag } from "@/components/tab-scrubber-drag";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useOpenFiles } from "@/hooks/use-open-files";
+import { useTabMode } from "@/hooks/use-tab-mode";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFileContents } from "@/services/editor/use-file-contents";
 import { HighlightedLine } from "@/utils/syntax-highlighter";
 
 export default function TabTwoScreen() {
-  const { filePath } = useLocalSearchParams<{ filePath?: string }>();
-  const { content, error, isLoading } = useFileContents(filePath);
+  const { activeFile, closeFile, closeAllFiles } = useOpenFiles();
+  const { tabMode } = useTabMode();
+  const { content, error, isLoading } = useFileContents(activeFile || undefined);
   const [selectedLine, setSelectedLine] = useState<number | null>(null);
   const codeLineEven = useThemeColor({}, "codeLineEven");
   const codeLineOdd = useThemeColor({}, "codeLineOdd");
@@ -23,10 +28,10 @@ export default function TabTwoScreen() {
     return content ? content.split("\n") : [];
   }, [content]);
 
-  // Clear selection when file changes
+  // Clear selection immediately when active file changes (before content loads)
   useEffect(() => {
     setSelectedLine(null);
-  }, [filePath]);
+  }, [activeFile]);
 
   const maxLineNumber = lines.length;
   const lineNumberWidth = useMemo(() => {
@@ -41,17 +46,12 @@ export default function TabTwoScreen() {
   return (
     <ThemedView style={styles.screenContainer}>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {!filePath ? (
+        {!activeFile ? (
           <ThemedView style={styles.placeholder}>
             <FontAwesome name="file-code-o" size={48} color="#9BA1A6" style={styles.placeholderIcon} />
             <ThemedText style={styles.placeholderTitle}>No File Selected</ThemedText>
-            <ThemedText style={styles.placeholderMessage}>
-              Select a file from the Files tab to view its contents
-            </ThemedText>
-            <Pressable
-              style={[styles.settingsButton, styles.placeholderButton, { backgroundColor: "#0a7ea4" }]}
-              onPress={() => router.navigate("/")}
-            >
+            <ThemedText style={styles.placeholderMessage}>Select a file from the Files tab to view its contents</ThemedText>
+            <Pressable style={[styles.settingsButton, styles.placeholderButton, { backgroundColor: "#0a7ea4" }]} onPress={() => router.navigate("/")}>
               <FontAwesome name="folder" size={16} color="#fff" />
               <ThemedText style={styles.settingsButtonText}>Browse Files</ThemedText>
             </Pressable>
@@ -60,13 +60,8 @@ export default function TabTwoScreen() {
           <ThemedView style={styles.errorContainer}>
             <FontAwesome name="exclamation-triangle" size={48} color="#ef4444" style={styles.errorIcon} />
             <ThemedText style={styles.errorTitle}>Connection Error</ThemedText>
-            <ThemedText style={styles.errorMessage}>
-              Unable to load file contents. Please check your daemon URL in settings.
-            </ThemedText>
-            <Pressable
-              style={[styles.settingsButton, { backgroundColor: "#ef4444" }]}
-              onPress={() => router.navigate("/settings")}
-            >
+            <ThemedText style={styles.errorMessage}>Unable to load file contents. Please check your daemon URL in settings.</ThemedText>
+            <Pressable style={[styles.settingsButton, { backgroundColor: "#ef4444" }]} onPress={() => router.navigate("/settings")}>
               <FontAwesome name="gear" size={16} color="#fff" />
               <ThemedText style={styles.settingsButtonText}>Open Settings</ThemedText>
             </Pressable>
@@ -74,24 +69,31 @@ export default function TabTwoScreen() {
         ) : (
           <ThemedView style={[styles.contentContainer, { backgroundColor: codeBackground }]}>
             <ThemedView style={[styles.fileHeader, { borderBottomColor: codeLineOdd }]}>
-              <ThemedText type="defaultSemiBold">{filePath}</ThemedText>
+              <Pressable style={styles.closeAllButton} onPress={closeAllFiles}>
+                <FontAwesome name="times-circle" size={20} color="#9BA1A6" />
+              </Pressable>
+              <ThemedText type="defaultSemiBold" style={styles.fileName}>
+                {activeFile}
+              </ThemedText>
+              <Pressable style={styles.closeButton} onPress={() => activeFile && closeFile(activeFile)}>
+                <FontAwesome name="times" size={16} color="#9BA1A6" />
+              </Pressable>
             </ThemedView>
-            {isLoading && <ThemedText style={styles.loadingText}>Loading file contents...</ThemedText>}
-            {content && (
-              <ScrollView style={styles.scrollView}>
+            <ScrollView style={styles.scrollView}>
+              {isLoading ? (
+                <ThemedView style={styles.loadingContainer}>
+                  <ThemedText style={styles.loadingText}>Loading file contents...</ThemedText>
+                </ThemedView>
+              ) : content ? (
                 <ThemedView style={styles.codeWrapper}>
                   <ThemedView style={styles.lineNumberColumn}>
                     {lines.map((line, index) => {
                       const lineNumber = index + 1;
                       const isEven = index % 2 === 0;
                       const isSelected = selectedLine === lineNumber;
-                      const backgroundColor = isSelected ? selectedLineColor : (isEven ? codeLineOdd : codeLineEven);
+                      const backgroundColor = isSelected ? selectedLineColor : isEven ? codeLineOdd : codeLineEven;
                       return (
-                        <Pressable
-                          key={index}
-                          style={[styles.lineNumberRow, { backgroundColor }]}
-                          onPress={() => setSelectedLine(lineNumber)}
-                        >
+                        <Pressable key={index} style={[styles.lineNumberRow, { backgroundColor }]} onPress={() => setSelectedLine(lineNumber)}>
                           <ThemedText style={[styles.lineNumber, { width: lineNumberWidth }]}>
                             {lineNumber.toString().padStart(maxLineNumber.toString().length, " ")}
                           </ThemedText>
@@ -109,13 +111,9 @@ export default function TabTwoScreen() {
                       const lineNumber = index + 1;
                       const isEven = index % 2 === 0;
                       const isSelected = selectedLine === lineNumber;
-                      const backgroundColor = isSelected ? selectedLineColor : (isEven ? codeLineOdd : codeLineEven);
+                      const backgroundColor = isSelected ? selectedLineColor : isEven ? codeLineOdd : codeLineEven;
                       return (
-                        <Pressable
-                          key={index}
-                          style={[styles.codeLine, { backgroundColor }]}
-                          onPress={() => setSelectedLine(lineNumber)}
-                        >
+                        <Pressable key={index} style={[styles.codeLine, { backgroundColor }]} onPress={() => setSelectedLine(lineNumber)}>
                           <ThemedView style={styles.codeTextContainer}>
                             <HighlightedLine line={line} />
                           </ThemedView>
@@ -124,8 +122,13 @@ export default function TabTwoScreen() {
                     })}
                   </ScrollView>
                 </ThemedView>
-              </ScrollView>
-            )}
+              ) : (
+                <ThemedView style={styles.emptyContainer}>
+                  <ThemedText style={styles.emptyText}>Empty file</ThemedText>
+                </ThemedView>
+              )}
+            </ScrollView>
+            {tabMode === "classic" ? <TabScrubberClassic /> : <TabScrubberDrag />}
           </ThemedView>
         )}
       </SafeAreaView>
@@ -171,11 +174,25 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   fileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: 0,
     paddingBottom: 8,
     paddingHorizontal: 12,
-    alignItems: "center",
     borderBottomWidth: 1,
+  },
+  fileName: {
+    flex: 1,
+    textAlign: "center",
+  },
+  closeButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+  closeAllButton: {
+    padding: 4,
+    borderRadius: 4,
   },
   codeWrapper: {
     flexDirection: "row",
@@ -208,8 +225,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: "transparent",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
   loadingText: {
-    padding: 16,
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    backgroundColor: "transparent",
+  },
+  emptyText: {
+    fontSize: 16,
+    opacity: 0.7,
   },
   errorContainer: {
     flex: 1,

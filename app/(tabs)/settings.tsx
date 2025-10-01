@@ -6,10 +6,12 @@ import { mutate } from "swr";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useHostUrl } from "@/hooks/use-host-url";
+import { useTabMode } from "@/hooks/use-tab-mode";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 export default function SettingsScreen() {
   const { url, setUrl, clearUrl, testConnection } = useHostUrl();
+  const { tabMode, setTabMode } = useTabMode();
   const [inputUrl, setInputUrl] = useState(url || "");
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
@@ -152,9 +154,7 @@ export default function SettingsScreen() {
 
             <ThemedView style={styles.buttonContainer}>
               <Pressable style={[styles.button, { backgroundColor: tintColor }]} onPress={handleConnect} disabled={isTestingConnection}>
-                <ThemedText style={[styles.buttonText, { color: backgroundColor }]}>
-                  {isTestingConnection ? "Connecting..." : "Connect"}
-                </ThemedText>
+                <ThemedText style={[styles.buttonText, { color: backgroundColor }]}>{isTestingConnection ? "Connecting..." : "Connect"}</ThemedText>
               </Pressable>
 
               <Pressable style={[styles.button, styles.dangerButton, { backgroundColor: dangerColor }]} onPress={handleClear}>
@@ -166,6 +166,36 @@ export default function SettingsScreen() {
           <ThemedView style={styles.section}>
             <ThemedText type="subtitle">Current URL</ThemedText>
             <ThemedText style={styles.currentUrl}>{url || "Not configured"}</ThemedText>
+          </ThemedView>
+
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Tab Interface</ThemedText>
+            <ThemedText style={styles.description}>Choose how you interact with open file tabs</ThemedText>
+
+            <ThemedView style={styles.buttonContainer}>
+              <Pressable
+                style={[
+                  styles.button,
+                  tabMode === "classic" && { backgroundColor: tintColor },
+                  tabMode !== "classic" && { backgroundColor: codeLineOdd },
+                ]}
+                onPress={() => setTabMode("classic")}
+              >
+                <ThemedText style={[styles.buttonText, { color: tabMode === "classic" ? backgroundColor : textColor }]}>Classic Tabs</ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={[styles.button, tabMode === "drag" && { backgroundColor: tintColor }, tabMode !== "drag" && { backgroundColor: codeLineOdd }]}
+                onPress={() => setTabMode("drag")}
+              >
+                <ThemedText style={[styles.buttonText, { color: tabMode === "drag" ? backgroundColor : textColor }]}>Drag Preview</ThemedText>
+              </Pressable>
+            </ThemedView>
+
+            <ThemedText style={styles.instructions}>
+              Classic: Scrollable tabs with close buttons{"\n"}
+              Drag Preview: Fixed tabs with drag-to-switch interaction
+            </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.section}>
