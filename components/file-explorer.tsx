@@ -12,14 +12,14 @@ import { useFileTree } from "@/services/editor/use-file-tree";
 import { TreeItem, getFileIcon } from "@/utils/file-tree";
 
 export function FileExplorer() {
-  const { root, treeData, error, isLoading } = useFileTree();
+  const { treeData, error, isLoading } = useFileTree();
   const { openFile } = useOpenFiles();
   const codeLineEven = useThemeColor({}, "codeLineEven");
   const codeLineOdd = useThemeColor({}, "codeLineOdd");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const toggleFolder = (folderPath: string) => {
-    setExpandedFolders(prev => {
+    setExpandedFolders((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(folderPath)) {
         newSet.delete(folderPath);
@@ -61,19 +61,12 @@ export function FileExplorer() {
           onPress={handlePress}
         >
           {isDirectory && hasChildren && (
-            <FontAwesome
-              name={isExpanded ? "chevron-down" : "chevron-right"}
-              size={12}
-              color={icon.color}
-              style={styles.expandIcon}
-            />
+            <FontAwesome name={isExpanded ? "chevron-down" : "chevron-right"} size={12} color={icon.color} style={styles.expandIcon} />
           )}
           <FontAwesome name={icon.name} size={20} color={icon.color} />
           <ThemedText style={styles.treeText}>{item.name}</ThemedText>
         </Pressable>
-        {isDirectory && isExpanded && item.children?.map((child, childIndex) =>
-          renderTreeItem(child, level + 1, index + childIndex + 1)
-        )}
+        {isDirectory && isExpanded && item.children?.map((child, childIndex) => renderTreeItem(child, level + 1, index + childIndex + 1))}
       </ThemedView>
     );
   };
@@ -87,13 +80,8 @@ export function FileExplorer() {
       <ThemedView style={styles.errorContainer}>
         <FontAwesome name="exclamation-triangle" size={48} color="#ef4444" style={styles.errorIcon} />
         <ThemedText style={styles.errorTitle}>Connection Error</ThemedText>
-        <ThemedText style={styles.errorMessage}>
-          Unable to load file tree. Please check your daemon URL in settings.
-        </ThemedText>
-        <Pressable
-          style={[styles.settingsButton, { backgroundColor: "#ef4444" }]}
-          onPress={() => router.navigate("/settings")}
-        >
+        <ThemedText style={styles.errorMessage}>Unable to load file tree. Please check your daemon URL in settings.</ThemedText>
+        <Pressable style={[styles.settingsButton, { backgroundColor: "#ef4444" }]} onPress={() => router.navigate("/settings")}>
           <FontAwesome name="gear" size={16} color="#fff" />
           <ThemedText style={styles.settingsButtonText}>Open Settings</ThemedText>
         </Pressable>
@@ -105,23 +93,11 @@ export function FileExplorer() {
     return <ThemedText>No data available</ThemedText>;
   }
 
-  return (
-    <ThemedView style={styles.treeContainer}>
-      {root && (
-        <ThemedView style={styles.rootHeader}>
-          <FontAwesome name="folder-open" size={20} color={FileTypeColors.folder} />
-          <ThemedText style={styles.rootText}>{root}</ThemedText>
-        </ThemedView>
-      )}
-      {treeData.map((item, index) => renderTreeItem(item, 0, index))}
-    </ThemedView>
-  );
+  return <ThemedView style={styles.treeContainer}>{treeData.map((item, index) => renderTreeItem(item, 0, index))}</ThemedView>;
 }
 
 const styles = StyleSheet.create({
-  treeContainer: {
-    marginTop: 8,
-  },
+  treeContainer: {},
   rootHeader: {
     flexDirection: "row",
     alignItems: "center",
