@@ -1,8 +1,10 @@
-import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import fs from "fs";
+import { Hono } from "hono";
 import path from "path";
+import { WebSocketServer } from "ws";
 import { ignore } from "./ignore";
+import { createTerminalSession } from "./terminal-handler";
 
 const app = new Hono();
 
@@ -79,8 +81,35 @@ app.post("/terminal/execute", async (c) => {
 });
 
 /*
- * This is a test comment
+ * Start the HTTP server and WebSocket server
  */
-serve(app, (info) => {
-  console.log(`🚀 Agent running at http://localhost:${info.port}`);
+const server = serve(
+  {
+    fetch: app.fetch,
+    port: 3000,
+  },
+  (info) => {
+    console.log(`🚀 Agent running at http://localhost:${info.port}`);
+  }
+);
+
+// Create WebSocket server for terminal connections
+const wss = new WebSocketServer({ server: server as any });
+
+wss.on("connection", (ws, req) => {
+  console.log("New WebSocket connection established");
+
+  // Only handle /terminal/ws endpoint
+  if (req.url !== "/terminal/ws") {
+    ws.close(1008, "Invalid endpoint");
+    return;
+  }
+
+  // Create a terminal session for this connection
+  const session = createTerminalSession(ws, ROOT);
+
+  ws.on("close", () => {
+    console.log("WebSocket connection closed");
+    session.cleanup();
+  });
 });

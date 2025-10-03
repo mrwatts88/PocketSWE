@@ -1,25 +1,56 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
-import { useHostUrl } from "@/hooks/use-host-url";
+import { useTerminalWebSocket } from "@/hooks/use-terminal-websocket";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
-interface OutputEntry {
-  text: string;
-  type: "command" | "output" | "error";
+/**
+ * Blinking terminal cursor component
+ */
+function TerminalCursor({ color }: { color: string }) {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 530,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 530,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    blink.start();
+
+    return () => {
+      blink.stop();
+    };
+  }, [opacity]);
+
+  return (
+    <Animated.View style={[styles.cursor, { backgroundColor: color, opacity }]} />
+  );
 }
 
 export default function TerminalScreen() {
-  const [outputEntries, setOutputEntries] = useState<OutputEntry[]>([]);
   const [command, setCommand] = useState("");
-  const [isExecuting, setIsExecuting] = useState(false);
   const inputRef = useRef<TextInput>(null);
-  const { url } = useHostUrl();
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Use WebSocket hook
+  const { connectionState, isExecuting, outputEntries, executeCommand, cancelCommand, clearOutput } = useTerminalWebSocket();
+
   const codeBackground = useThemeColor({}, "codeBackground");
   const codeLineOdd = useThemeColor({}, "codeLineOdd");
   const themeBackground = useThemeColor({}, "background");
@@ -33,67 +64,86 @@ export default function TerminalScreen() {
   const terminalPlaceholder = useThemeColor({}, "terminalPlaceholder");
   const terminalBorder = useThemeColor({}, "terminalBorder");
 
-  const handleSubmit = async () => {
-    if (!command.trim() || !url) return;
+  // Auto-scroll to bottom when new output arrives
+  useEffect(() => {
+    // Use a small delay to ensure content is rendered before scrolling
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [outputEntries]);
 
-    setIsExecuting(true);
+  // Keep input focused when isExecuting changes
+  useEffect(() => {
+    // Maintain focus when execution state changes
+    if (inputRef.current && connectionState === "connected") {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isExecuting, connectionState]);
 
-    // Add command to output
-    setOutputEntries((prev) => [...prev, { text: `> ${command}`, type: "command" }]);
+  const handleSubmit = () => {
+    if (!command.trim()) return;
 
-    const currentCommand = command;
+    // Execute command via WebSocket
+    executeCommand(command);
 
-    // Clear input immediately using both state and ref
+    // Clear input and maintain focus
     setCommand("");
     inputRef.current?.clear();
 
-    try {
-      const response = await fetch(`${url}/terminal/execute`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ command: currentCommand }),
-      });
+    // Refocus the input after a short delay to ensure it stays focused
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
+  };
 
-      if (!response.ok) {
-        setOutputEntries((prev) => [...prev, { text: `HTTP Error: ${response.status} ${response.statusText}`, type: "error" }]);
-        return;
-      }
+  const handleCancel = () => {
+    cancelCommand();
+  };
 
-      const data = await response.json();
-
-      if (data.output) {
-        setOutputEntries((prev) => [...prev, { text: data.output, type: "output" }]);
-      }
-    } catch (error) {
-      setOutputEntries((prev) => [...prev, { text: `Failed to execute command: ${error}`, type: "error" }]);
-    } finally {
-      setIsExecuting(false);
-      // Ensure command is cleared even if there was an error
-      setCommand("");
-      inputRef.current?.clear();
+  const getConnectionStatusText = () => {
+    switch (connectionState) {
+      case "connecting":
+        return "Connecting...";
+      case "connected":
+        return "Connected";
+      case "disconnected":
+        return "Disconnected";
+      case "error":
+        return "Connection Error";
+      default:
+        return "";
     }
   };
 
-  const clearOutput = () => {
-    setOutputEntries([]);
+  const getConnectionStatusColor = () => {
+    switch (connectionState) {
+      case "connected":
+        return "#4CAF50";
+      case "connecting":
+        return "#FFC107";
+      case "disconnected":
+      case "error":
+        return "#FF6B6B";
+      default:
+        return terminalPlaceholder;
+    }
   };
 
   const renderOutput = () => {
-    if (outputEntries.length === 0) {
-      return <ThemedText style={[styles.placeholder, { color: terminalPlaceholder }]}>Ready to execute commands...</ThemedText>;
-    }
-
-    return outputEntries.map((entry, index) => {
+    const outputElements = outputEntries.map((entry, index) => {
       let color;
       switch (entry.type) {
         case "command":
           color = terminalCommand;
           break;
-        case "output":
+        case "stdout":
           color = terminalOutput;
           break;
+        case "stderr":
         case "error":
           color = terminalError;
           break;
@@ -107,6 +157,36 @@ export default function TerminalScreen() {
         </ThemedText>
       );
     });
+
+    // Show cursor at the end if not executing and connected
+    if (!isExecuting && connectionState === "connected") {
+      outputElements.push(
+        <View key="cursor-line" style={styles.cursorLine}>
+          <ThemedText style={[styles.outputText, { color: terminalPrompt }]}>{">"}</ThemedText>
+          <TerminalCursor color={terminalPrompt} />
+        </View>
+      );
+    }
+
+    // Show empty state if no output
+    if (outputEntries.length === 0) {
+      return (
+        <View>
+          <ThemedText style={[styles.placeholder, { color: terminalPlaceholder }]}>Ready to execute commands...</ThemedText>
+          <ThemedText style={[styles.placeholder, { color: terminalPlaceholder, fontSize: 11, marginTop: 8 }]}>
+            Status: {getConnectionStatusText()}
+          </ThemedText>
+          {!isExecuting && connectionState === "connected" && (
+            <View style={[styles.cursorLine, { marginTop: 16 }]}>
+              <ThemedText style={[styles.outputText, { color: terminalPrompt }]}>{">"}</ThemedText>
+              <TerminalCursor color={terminalPrompt} />
+            </View>
+          )}
+        </View>
+      );
+    }
+
+    return outputElements;
   };
 
   return (
@@ -115,17 +195,30 @@ export default function TerminalScreen() {
         <ThemedView style={[styles.contentContainer, { backgroundColor: codeBackground }]}>
           {/* Header */}
           <ThemedView style={[styles.header, { borderBottomColor: codeLineOdd }]}>
-            <View style={styles.headerSpacer} />
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusDot, { backgroundColor: getConnectionStatusColor() }]} />
+            </View>
             <ThemedText type="defaultSemiBold" style={styles.title}>
               Terminal
             </ThemedText>
-            <TouchableOpacity onPress={clearOutput} style={styles.clearButton}>
-              <ThemedText style={styles.clearButtonText}>Clear</ThemedText>
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              {isExecuting && (
+                <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+                  <ThemedText style={styles.cancelButtonText}>Cancel</ThemedText>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={clearOutput} style={styles.clearButton}>
+                <ThemedText style={styles.clearButtonText}>Clear</ThemedText>
+              </TouchableOpacity>
+            </View>
           </ThemedView>
 
           {/* Output */}
-          <ScrollView style={[styles.outputContainer, { backgroundColor: terminalBackground }]} contentContainerStyle={styles.outputContent}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={[styles.outputContainer, { backgroundColor: terminalBackground }]}
+            contentContainerStyle={styles.outputContent}
+          >
             {renderOutput()}
           </ScrollView>
 
@@ -143,10 +236,19 @@ export default function TerminalScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="send"
-              editable={!isExecuting}
+              blurOnSubmit={false}
+              keyboardType="default"
             />
-            <TouchableOpacity onPress={handleSubmit} disabled={isExecuting || !command.trim()} style={styles.sendButton}>
-              <Ionicons name="send" size={20} color={isExecuting || !command.trim() ? terminalPlaceholder : terminalPrompt} />
+            <TouchableOpacity
+              onPress={handleSubmit}
+              disabled={isExecuting || !command.trim() || connectionState !== "connected"}
+              style={styles.sendButton}
+            >
+              <Ionicons
+                name="send"
+                size={20}
+                color={isExecuting || !command.trim() || connectionState !== "connected" ? terminalPlaceholder : terminalPrompt}
+              />
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -174,8 +276,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  headerSpacer: {
-    width: 36, // Match the close button width on the other side
+  statusContainer: {
+    width: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cancelButton: {
+    padding: 8,
+  },
+  cancelButtonText: {
+    color: "#FFC107",
+    fontSize: 14,
+    fontWeight: "600",
   },
   title: {
     flex: 1,
@@ -194,6 +316,7 @@ const styles = StyleSheet.create({
   },
   outputContent: {
     padding: 12,
+    paddingBottom: 24,
   },
   outputText: {
     fontFamily: Fonts.mono,
@@ -227,6 +350,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 8,
     paddingHorizontal: 8,
+  },
+  cursorLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  cursor: {
+    width: 8,
+    height: 16,
+    marginLeft: 4,
   },
   sendButton: {
     padding: 8,

@@ -15,7 +15,9 @@
   "description": "",
   "dependencies": {
     "@hono/node-server": "^1.19.5",
-    "hono": "^4.9.9"
+    "@types/ws": "^8.18.1",
+    "hono": "^4.9.9",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/node": "^24.6.0",
