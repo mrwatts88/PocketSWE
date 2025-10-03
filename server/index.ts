@@ -3,6 +3,7 @@ import fs from "fs";
 import { Hono } from "hono";
 import path from "path";
 import { WebSocketServer } from "ws";
+import { createClaudeSession } from "./claude-handler";
 import { ignore } from "./ignore";
 import { createTerminalSession } from "./terminal-handler";
 
@@ -94,22 +95,45 @@ const server = serve(
 );
 
 // Create WebSocket server for terminal connections
-const wss = new WebSocketServer({ server: server as any });
+const wss = new WebSocketServer({
+  server: server as any,
+});
 
 wss.on("connection", (ws, req) => {
   console.log("New WebSocket connection established");
 
-  // Only handle /terminal/ws endpoint
-  if (req.url !== "/terminal/ws") {
+  // Keep the connection alive with periodic pings
+  const keepaliveInterval = setInterval(() => {
+    if (ws.readyState === ws.OPEN) {
+      ws.ping();
+    }
+  }, 30000);
+
+  // Route to appropriate handler based on endpoint
+  if (req.url === "/terminal/ws") {
+    // Create a terminal session for this connection
+    const session = createTerminalSession(ws, ROOT);
+
+    ws.on("close", () => {
+      console.log("Terminal WebSocket connection closed");
+      clearInterval(keepaliveInterval);
+      session.cleanup();
+    });
+  } else if (req.url === "/claude/ws") {
+    // Create a Claude session for this connection
+    const session = createClaudeSession(ws, ROOT);
+
+    ws.on("close", (code, reason) => {
+      console.log("Claude WebSocket connection closed", { code, reason: reason.toString() });
+      clearInterval(keepaliveInterval);
+      session.cleanup();
+    });
+
+    ws.on("error", (error) => {
+      console.error("Claude WebSocket error:", error);
+    });
+  } else {
+    clearInterval(keepaliveInterval);
     ws.close(1008, "Invalid endpoint");
-    return;
   }
-
-  // Create a terminal session for this connection
-  const session = createTerminalSession(ws, ROOT);
-
-  ws.on("close", () => {
-    console.log("WebSocket connection closed");
-    session.cleanup();
-  });
 });

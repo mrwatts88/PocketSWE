@@ -29,6 +29,14 @@ export const Colors = {
     terminalPrompt: "#228B22",
     terminalPlaceholder: "#999999",
     terminalBorder: "#D4C4B0", // Light brown border for cream background
+    // AI chat colors
+    aiBackground: "rgba(0, 0, 0, 0.08)",
+    aiAssistant: "#11181C",
+    aiUser: "#0a7ea4",
+    aiTool: "#D97706",
+    aiError: "#DC2626",
+    aiSystem: "#6B7280",
+    aiSuccess: "#059669",
   },
   dark: {
     text: "#ECEDEE",
@@ -49,7 +57,15 @@ export const Colors = {
     terminalError: "#FF6B6B",
     terminalPrompt: "#4CAF50",
     terminalPlaceholder: "#666666",
-    terminalBorder: "#333333", // Dark border for dark background
+    terminalBorder: "#333333",
+    // AI chat colors
+    aiBackground: "rgba(0, 0, 0, 0.2)",
+    aiAssistant: "#ECEDEE",
+    aiUser: "#58A6FF",
+    aiTool: "#F59E0B",
+    aiError: "#FF6B6B",
+    aiSystem: "#9BA1A6",
+    aiSuccess: "#10B981",
   },
 };
 

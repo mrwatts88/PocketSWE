@@ -5,11 +5,13 @@ import { FileExplorer } from "@/components/file-explorer";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { FileTypeColors } from "@/constants/theme";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useFileTree } from "@/services/editor/use-file-tree";
 import { FontAwesome } from "@expo/vector-icons";
 
 export default function HomeScreen() {
   const { root, error } = useFileTree();
+  const codeLineOdd = useThemeColor({}, "codeLineOdd");
 
   return (
     <ThemedView style={styles.screenContainer}>
@@ -19,7 +21,7 @@ export default function HomeScreen() {
         ) : (
           <>
             {root && (
-              <ThemedView style={styles.rootHeader}>
+              <ThemedView style={[styles.rootHeader, { borderBottomColor: codeLineOdd }]}>
                 <FontAwesome name="folder-open" size={20} color={FileTypeColors.folder} />
                 <ThemedText style={styles.rootText}>{root}</ThemedText>
               </ThemedView>
@@ -50,7 +52,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(128, 128, 128, 0.2)",
   },
   rootText: {
     fontSize: 18,
