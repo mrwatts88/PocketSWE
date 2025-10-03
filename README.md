@@ -101,29 +101,104 @@ PocketSWE/
 
 ### Prerequisites
 
-- Node.js (v18 or higher recommended)
-- npm or yarn
+- Node.js (v20 or higher) - see `.nvmrc` file
+- npm (comes with Node.js)
 - Expo Go app (for testing on physical devices)
 
 ### Installation
 
-1. Install dependencies:
+1. **Use the correct Node.js version:**
+
+   ```bash
+   # If you have nvm installed
+   nvm use
+
+   # This will switch to Node.js 20 as specified in .nvmrc
+   ```
+
+2. **Install dependencies for the entire monorepo:**
 
    ```bash
    npm install
    ```
 
-2. Start the development server:
+3. **Start development servers:**
+
+   **Option A: Run both mobile app and server together:**
 
    ```bash
-   npx expo start
+   npm run dev
    ```
 
-3. Open the app:
+   **Option B: Run individually:**
+
+   ```bash
+   # Mobile app only
+   npm start
+
+   # Server only (in another terminal)
+   npm run server:dev
+   ```
+
+4. **Open the mobile app:**
    - Scan the QR code with Expo Go (Android/iOS)
    - Press `i` for iOS simulator
    - Press `a` for Android emulator
    - Press `w` for web
+
+## Monorepo Structure
+
+This project uses npm workspaces to manage both the mobile app and server in a single repository:
+
+```
+PocketSWE/
+├── app/                    # Mobile app (Expo/React Native)
+├── components/             # Mobile app components
+├── server/                 # Backend server (Hono/Node.js)
+│   ├── index.ts           # Server entry point
+│   ├── package.json       # Server dependencies
+│   └── tsconfig.json      # Server TypeScript config
+├── package.json           # Root package.json with workspaces
+├── .nvmrc                 # Node.js version specification
+└── ...
+```
+
+### Available Scripts
+
+**Root level commands:**
+
+- `npm run dev` - Run both mobile app and server concurrently
+- `npm run start` - Start mobile app only
+- `npm run server:dev` - Start server in development mode
+- `npm run server:start` - Start server in production mode
+- `npm install` - Install dependencies for all workspaces
+
+**Workspace-specific commands:**
+
+- `npm run start --workspace=server` - Run server commands from root
+- `npm install some-package --workspace=server` - Install packages to server workspace
+
+### Development Workflow
+
+1. **Initial setup:**
+
+   ```bash
+   nvm use          # Switch to Node.js 20
+   npm install      # Install all dependencies
+   ```
+
+2. **Daily development:**
+
+   ```bash
+   npm run dev      # Starts both mobile app and server
+   ```
+
+3. **Server-only development:**
+   ```bash
+   npm run server:dev
+   ```
+
+The server runs on `http://localhost:3000` by default and provides the API endpoints that the mobile app connects to.
 
 ### Backend Setup
 

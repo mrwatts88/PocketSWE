@@ -41,3 +41,8 @@ app-example
 # generated native folders
 /ios
 /android
+
+# server specific
+server/dist/
+server/.env
+server/.env.local
