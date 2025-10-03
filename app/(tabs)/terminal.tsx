@@ -77,12 +77,11 @@ export default function TerminalScreen() {
 
   // Auto-scroll when chip area visibility changes (affects layout)
   useEffect(() => {
-    const hasChips = getFilteredCommands(command).length > 0;
     const timer = setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: false });
     }, 10);
     return () => clearTimeout(timer);
-  }, [command, getFilteredCommands]);
+  }, [command]);
 
   // Keep input focused when isExecuting changes
   useEffect(() => {
@@ -205,10 +204,7 @@ export default function TerminalScreen() {
     if (outputEntries.length === 0) {
       return (
         <View>
-          <ThemedText style={[styles.placeholder, { color: terminalPlaceholder }]}>Ready to execute commands...</ThemedText>
-          <ThemedText style={[styles.placeholder, { color: terminalPlaceholder, fontSize: 11, marginTop: 8 }]}>
-            Status: {getConnectionStatusText()}
-          </ThemedText>
+          <ThemedText style={[styles.placeholder, { color: terminalPlaceholder }]}>Status: {getConnectionStatusText()}</ThemedText>
           {!isExecuting && connectionState === "connected" && (
             <View style={[styles.cursorLine, { marginTop: 16 }]}>
               <ThemedText style={[styles.outputText, { color: terminalPrompt }]}>{">"}</ThemedText>

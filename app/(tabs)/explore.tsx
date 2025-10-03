@@ -232,6 +232,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     padding: 16,
+    backgroundColor: "transparent",
   },
   loadingText: {
     textAlign: "center",

@@ -1,6 +1,6 @@
 # PocketSWE
 
-A mobile-first code editor and file browser built with React Native and Expo. PocketSWE provides a clean, intuitive interface for viewing and exploring code on mobile devices with syntax highlighting, line selection, and dynamic daemon configuration.
+A mobile-first code editor and integrated terminal built with React Native and Expo. PocketSWE provides a powerful, intuitive interface for exploring code and executing commands on mobile devices with real-time WebSocket streaming, intelligent command history, and professional syntax highlighting.
 
 ## Features
 
@@ -28,24 +28,62 @@ A mobile-first code editor and file browser built with React Native and Expo. Po
 - **Smart comment detection** (avoids false positives in URLs)
 - **File navigation** with contextual error handling
 
+### 💻 Integrated Terminal
+
+- **Real-time WebSocket streaming** for command execution
+- **Live output display** with stdout/stderr separation
+- **Blinking terminal cursor** with current input preview
+- **Command history** with smart autocomplete:
+  - Persisted across sessions in SecureStore
+  - Excludes common commands from history
+  - Global deduplication (keeps most recent)
+  - Quick access chips for recent commands
+- **Common command suggestions** (pwd, ls, git status, npm, etc.)
+- **Filtered autocomplete** as you type
+- **Command cancellation** with graceful/force termination
+- **Security features**:
+  - Server-side command allowlist
+  - Argument validation for sensitive commands
+  - 60-second timeout protection
+  - No shell execution (uses spawn directly)
+- **Mobile-optimized UX**:
+  - Keyboard persistence across commands
+  - iOS autocomplete disabled
+  - Tap chips to fill commands
+  - Delete history items with X button
+  - Auto-scroll to bottom on output
+
 ### 🎨 Theme Support
 
-- **Automatic light and dark mode** support
+- **Manual theme control** with three modes:
+  - ☀️ Light mode (always light)
+  - 🌙 Dark mode (always dark)
+  - 📱 System mode (follows iOS settings)
+- **Instant theme switching** across entire app
 - **Theme-aware syntax highlighting** colors
-- **Adaptive UI elements** that respond to system theme
+- **Adaptive UI elements** that respond to theme changes
 - **VS Code-inspired color schemes**:
   - Light mode: Traditional VS Code Light+ colors
   - Dark mode: VS Code Dark+ colors
 - **Line selection highlighting** with theme-appropriate colors
+- **Persisted preference** in SecureStore
 
 ### ⚙️ Dynamic Configuration
 
-- **Settings tab** for daemon URL configuration
-- **Connection testing** with real-time feedback
-- **Secure storage** of URLs using Expo SecureStore
+- **Settings tab** with comprehensive options:
+  - Daemon URL configuration with connection testing
+  - Tab mode switcher (Classic vs Drag Preview)
+  - Theme selector (Light/Dark/System)
+  - Clear instructions and help text
+- **Connection testing** with real-time status feedback
+- **Secure storage** using Expo SecureStore for:
+  - Daemon URL
+  - Theme preference
+  - Terminal command history
+  - Tab mode preference
 - **Automatic cache refresh** when connection succeeds
-- **Contextual error handling** with direct settings navigation
 - **Input validation** and connection status indicators
+- **No persistence** for open files or file tree state (fresh start each launch)
 
 ### 📱 Mobile Optimized
 
@@ -58,43 +96,68 @@ A mobile-first code editor and file browser built with React Native and Expo. Po
 
 ## Tech Stack
 
+### Frontend (Mobile App)
 - **Framework**: [Expo](https://expo.dev) + React Native
 - **Routing**: Expo Router (file-based routing)
 - **Data Fetching**: SWR (stale-while-revalidate)
-- **Storage**: Expo SecureStore for URL persistence
+- **Real-time Communication**: Native WebSocket API
+- **Storage**: Expo SecureStore for persistence
 - **Styling**: React Native StyleSheet with theme system
 - **Icons**: Expo Vector Icons (@expo/vector-icons)
+- **Type Safety**: TypeScript
+
+### Backend (Server)
+- **Framework**: [Hono](https://hono.dev) (fast web framework)
+- **Runtime**: Node.js 20+
+- **WebSocket**: [ws](https://github.com/websockets/ws) library
+- **Process Management**: Node.js child_process.spawn
 - **Type Safety**: TypeScript
 
 ## Project Structure
 
 ```
 PocketSWE/
-├── app/                    # Expo Router screens
+├── app/                           # Expo Router screens
 │   ├── (tabs)/
-│   │   ├── index.tsx      # Files tab (file explorer)
-│   │   ├── explore.tsx    # Editor tab (code viewer)
-│   │   └── settings.tsx   # Settings tab (daemon config)
-│   └── _layout.tsx
-├── components/            # Reusable UI components
-│   ├── file-explorer.tsx  # File tree component
-│   ├── host-url-provider.tsx # URL context provider
-│   ├── themed-text.tsx    # Theme-aware text
-│   └── themed-view.tsx    # Theme-aware view
+│   │   ├── index.tsx             # Files tab (file explorer)
+│   │   ├── explore.tsx           # Editor tab (code viewer)
+│   │   ├── terminal.tsx          # Terminal tab (command execution)
+│   │   └── settings.tsx          # Settings tab (configuration)
+│   └── _layout.tsx               # Root layout with providers
+├── components/                   # Reusable UI components
+│   ├── file-explorer.tsx         # File tree component
+│   ├── host-url-provider.tsx    # URL context provider
+│   ├── theme-provider.tsx        # Theme context provider
+│   ├── open-files-provider.tsx  # Open files context
+│   ├── tab-mode-provider.tsx    # Tab mode context
+│   ├── themed-text.tsx           # Theme-aware text
+│   └── themed-view.tsx           # Theme-aware view
 ├── constants/
-│   └── theme.ts          # Theme colors and tokens
-├── hooks/                # Custom React hooks
-│   ├── use-color-scheme.ts
-│   ├── use-host-url.ts    # URL management hook
-│   └── use-theme-color.ts
-├── services/             # API and data services
-│   ├── fetcher.ts        # SWR fetcher function
+│   └── theme.ts                  # Theme colors and tokens
+├── hooks/                        # Custom React hooks
+│   ├── use-color-scheme.ts       # Active color scheme hook
+│   ├── use-host-url.ts           # URL management
+│   ├── use-theme.ts              # Theme management (internal)
+│   ├── use-theme-color.ts        # Theme color accessor
+│   ├── use-command-history.ts    # Terminal command history
+│   ├── use-terminal-websocket.ts # WebSocket terminal connection
+│   ├── use-open-files.ts         # Open files management
+│   └── use-tab-mode.ts           # Tab mode preference
+├── server/                       # Backend server (Node.js/Hono)
+│   ├── index.ts                  # Server entry + WebSocket endpoint
+│   ├── command-allowlist.ts      # Security: allowed commands
+│   ├── terminal-handler.ts       # WebSocket terminal session manager
+│   ├── ignore.ts                 # Files to exclude from tree
+│   ├── package.json              # Server dependencies
+│   └── tsconfig.json             # Server TypeScript config
+├── services/                     # API and data services
+│   ├── fetcher.ts                # SWR fetcher function
 │   └── editor/
-│       ├── use-file-tree.ts      # File tree hook
+│       ├── use-file-tree.ts      # File tree data hook
 │       └── use-file-contents.ts  # File contents hook
-└── utils/                # Utility functions
-    ├── file-tree.ts      # File tree types and helpers
-    └── syntax-highlighter.tsx  # Syntax highlighting component
+└── utils/                        # Utility functions
+    ├── file-tree.ts              # File tree types and helpers
+    └── syntax-highlighter.tsx    # Syntax highlighting component
 ```
 
 ## Getting Started
@@ -200,36 +263,68 @@ PocketSWE/
 
 The server runs on `http://localhost:3000` by default and provides the API endpoints that the mobile app connects to.
 
-### Backend Setup
+### Backend API
 
-PocketSWE requires a backend server (daemon) to provide file tree and file contents data:
+The included server provides the following endpoints:
 
-- **File Tree Endpoint**: `GET /tree`
-  - Returns an array of `TreeItem` objects with file/directory structure
-- **File Contents Endpoint**: `GET /file/:filePath`
-  - Returns file contents with path information
-- **Health Check Endpoint**: `GET /health`
-  - Returns 200 status for connection testing
+#### HTTP Endpoints
 
-Example response format:
+- **`GET /health`** - Health check
+  - Returns 200 OK status for connection testing
 
-```json
-// File tree
-[
-  {
-    "name": "src",
-    "type": "dir",
-    "path": "src",
-    "children": [...]
-  }
-]
+- **`GET /tree`** - File tree structure
+  - Returns nested tree of files and directories
+  - Example response:
+    ```json
+    {
+      "root": "PocketSWE",
+      "tree": [
+        {
+          "name": "src",
+          "type": "dir",
+          "path": "src",
+          "children": [...]
+        }
+      ]
+    }
+    ```
 
-// File contents
-{
-  "path": "src/index.ts",
-  "contents": "export const hello = 'world';"
-}
-```
+- **`GET /file/:path`** - File contents
+  - Returns file contents for the specified path
+  - Example response:
+    ```json
+    {
+      "path": "src/index.ts",
+      "contents": "export const hello = 'world';"
+    }
+    ```
+
+#### WebSocket Endpoints
+
+- **`WS /terminal/ws`** - Terminal WebSocket connection
+  - Real-time bidirectional command execution
+  - Client → Server messages:
+    ```json
+    { "type": "execute", "command": "ls -la" }
+    { "type": "cancel" }
+    ```
+  - Server → Client messages:
+    ```json
+    { "type": "stdout", "data": "file.txt\n" }
+    { "type": "stderr", "data": "error message\n" }
+    { "type": "exit", "code": 0 }
+    { "type": "error", "message": "Command not allowed" }
+    ```
+
+#### Security Features
+
+The server includes robust security measures for terminal execution:
+- **Command allowlist**: Only safe commands permitted (pwd, ls, git, npm, etc.)
+- **Argument validation**: Restricted arguments for sensitive commands
+- **Blocked commands**: rm, sudo, chmod, network commands, etc.
+- **Process isolation**: No shell execution, uses spawn directly
+- **Timeout protection**: 60-second max execution time
+- **Graceful termination**: SIGTERM followed by SIGKILL if needed
 
 ## Theme Customization
 
@@ -291,19 +386,21 @@ export const Colors = {
 
 - **Mobile-optimized file browser** with collapsible folder tree
 - **Professional code viewer** with line selection and syntax highlighting
+- **Real-time terminal** with WebSocket streaming and command execution
+- **Intelligent command history** with autocomplete and quick access chips
+- **Manual theme control** with instant switching across entire app
 - **Dynamic daemon configuration** with connection testing
 - **Comprehensive error handling** with contextual navigation
-- **Full theme support** (light/dark mode)
-- **Secure URL storage** and automatic cache management
+- **Secure storage** for preferences and command history
+- **Command security** with server-side allowlist and validation
 
 ### 🚧 Next Steps
 
 The ultimate vision is a **voice-controlled mobile coding environment**:
 
 1. **File Editing** - Transition from read-only to editable code viewer
-2. **Terminal Integration** - Add terminal tab for command execution
-3. **AI Integration** - Connect to Claude Code for intelligent assistance
-4. **Voice Interface** - Speech-to-text for hands-free coding commands
+2. **AI Integration** - Connect to Claude Code for intelligent assistance
+3. **Voice Interface** - Speech-to-text for hands-free coding commands
 
 ### 🎯 Ultimate Vision
 
