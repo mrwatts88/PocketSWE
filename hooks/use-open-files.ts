@@ -1,8 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
 import { createContext, useContext, useEffect, useState } from 'react';
-
-const OPEN_FILES_KEY = 'open_files';
-const ACTIVE_FILE_KEY = 'active_file';
 
 interface OpenFilesContextType {
   openFiles: string[];
@@ -29,57 +25,18 @@ export function useOpenFilesProvider() {
   const [activeFile, setActiveFileState] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load state from secure storage on mount
+  // Don't load state from storage - start fresh each time
   useEffect(() => {
-    const loadState = async () => {
-      try {
-        const [storedOpenFiles, storedActiveFile] = await Promise.all([
-          SecureStore.getItemAsync(OPEN_FILES_KEY),
-          SecureStore.getItemAsync(ACTIVE_FILE_KEY),
-        ]);
-
-        if (storedOpenFiles) {
-          const parsedFiles = JSON.parse(storedOpenFiles);
-          setOpenFiles(parsedFiles);
-        }
-
-        if (storedActiveFile && storedOpenFiles) {
-          const parsedFiles = JSON.parse(storedOpenFiles);
-          // Only set active file if it's still in the open files list
-          if (parsedFiles.includes(storedActiveFile)) {
-            setActiveFileState(storedActiveFile);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load open files state:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadState();
+    setIsLoading(false);
   }, []);
 
-  // Persist open files to storage
+  // No-op functions - don't persist open files
   const persistOpenFiles = async (files: string[]) => {
-    try {
-      await SecureStore.setItemAsync(OPEN_FILES_KEY, JSON.stringify(files));
-    } catch (error) {
-      console.error('Failed to save open files:', error);
-    }
+    // Intentionally empty - don't persist
   };
 
-  // Persist active file to storage
   const persistActiveFile = async (filePath: string | null) => {
-    try {
-      if (filePath) {
-        await SecureStore.setItemAsync(ACTIVE_FILE_KEY, filePath);
-      } else {
-        await SecureStore.deleteItemAsync(ACTIVE_FILE_KEY);
-      }
-    } catch (error) {
-      console.error('Failed to save active file:', error);
-    }
+    // Intentionally empty - don't persist
   };
 
   const openFile = (filePath: string) => {

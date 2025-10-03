@@ -7,11 +7,13 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useHostUrl } from "@/hooks/use-host-url";
 import { useTabMode } from "@/hooks/use-tab-mode";
+import { useTheme } from "@/components/theme-provider";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 export default function SettingsScreen() {
   const { url, setUrl, clearUrl, testConnection } = useHostUrl();
   const { tabMode, setTabMode } = useTabMode();
+  const { themeMode, setThemeMode } = useTheme();
   const [inputUrl, setInputUrl] = useState(url || "");
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "success" | "error">("idle");
@@ -125,7 +127,18 @@ export default function SettingsScreen() {
         <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.contentContainer}>
           <ThemedView style={styles.section}>
             <ThemedText type="title">Settings</ThemedText>
-            <ThemedText style={styles.description}>Specify your PocketSWE daemon URL</ThemedText>
+            <ThemedText style={styles.description}>Configure your PocketSWE application</ThemedText>
+          </ThemedView>
+
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Instructions</ThemedText>
+            <ThemedText style={styles.instructions}>
+              1. Enter the URL of your PocketSWE daemon{"\n"}
+              2. Click &apos;Connect&apos; to test and save the URL{"\n"}
+              3. The URL is only saved if connection succeeds{"\n"}
+              {"\n"}
+              Make sure your daemon is running before connecting.
+            </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.section}>
@@ -199,13 +212,48 @@ export default function SettingsScreen() {
           </ThemedView>
 
           <ThemedView style={styles.section}>
-            <ThemedText type="subtitle">Instructions</ThemedText>
+            <ThemedText type="subtitle">Theme</ThemedText>
+            <ThemedText style={styles.description}>Choose your preferred color scheme</ThemedText>
+
+            <ThemedView style={styles.buttonContainer}>
+              <Pressable
+                style={[
+                  styles.button,
+                  themeMode === "light" && { backgroundColor: tintColor },
+                  themeMode !== "light" && { backgroundColor: codeLineOdd },
+                ]}
+                onPress={() => setThemeMode("light")}
+              >
+                <ThemedText style={[styles.buttonText, { color: themeMode === "light" ? backgroundColor : textColor }]}>☀️ Light</ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.button,
+                  themeMode === "dark" && { backgroundColor: tintColor },
+                  themeMode !== "dark" && { backgroundColor: codeLineOdd },
+                ]}
+                onPress={() => setThemeMode("dark")}
+              >
+                <ThemedText style={[styles.buttonText, { color: themeMode === "dark" ? backgroundColor : textColor }]}>🌙 Dark</ThemedText>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.button,
+                  themeMode === "system" && { backgroundColor: tintColor },
+                  themeMode !== "system" && { backgroundColor: codeLineOdd },
+                ]}
+                onPress={() => setThemeMode("system")}
+              >
+                <ThemedText style={[styles.buttonText, { color: themeMode === "system" ? backgroundColor : textColor }]}>📱 System</ThemedText>
+              </Pressable>
+            </ThemedView>
+
             <ThemedText style={styles.instructions}>
-              1. Enter the URL of your PocketSWE daemon{"\n"}
-              2. Click &apos;Connect&apos; to test and save the URL{"\n"}
-              3. The URL is only saved if connection succeeds{"\n"}
-              {"\n"}
-              Make sure your daemon is running before connecting.
+              Light: Always use light theme{"\n"}
+              Dark: Always use dark theme{"\n"}
+              System: Follow iOS system settings
             </ThemedText>
           </ThemedView>
         </ScrollView>
