@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
+import { useCommandHistory } from "@/hooks/use-command-history";
 import { useTerminalWebSocket } from "@/hooks/use-terminal-websocket";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
@@ -38,9 +39,7 @@ function TerminalCursor({ color }: { color: string }) {
     };
   }, [opacity]);
 
-  return (
-    <Animated.View style={[styles.cursor, { backgroundColor: color, opacity }]} />
-  );
+  return <Animated.View style={[styles.cursor, { backgroundColor: color, opacity }]} />;
 }
 
 export default function TerminalScreen() {
@@ -50,6 +49,9 @@ export default function TerminalScreen() {
 
   // Use WebSocket hook
   const { connectionState, isExecuting, outputEntries, executeCommand, cancelCommand, clearOutput } = useTerminalWebSocket();
+
+  // Use command history hook
+  const { history, addCommand, removeCommand, getFilteredCommands } = useCommandHistory();
 
   const codeBackground = useThemeColor({}, "codeBackground");
   const codeLineOdd = useThemeColor({}, "codeLineOdd");
@@ -73,6 +75,15 @@ export default function TerminalScreen() {
     return () => clearTimeout(timer);
   }, [outputEntries]);
 
+  // Auto-scroll when chip area visibility changes (affects layout)
+  useEffect(() => {
+    const hasChips = getFilteredCommands(command).length > 0;
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: false });
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [command, getFilteredCommands]);
+
   // Keep input focused when isExecuting changes
   useEffect(() => {
     // Maintain focus when execution state changes
@@ -87,6 +98,9 @@ export default function TerminalScreen() {
   const handleSubmit = () => {
     if (!command.trim()) return;
 
+    // Add to history
+    addCommand(command);
+
     // Execute command via WebSocket
     executeCommand(command);
 
@@ -98,6 +112,24 @@ export default function TerminalScreen() {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 10);
+  };
+
+  const handleChipPress = (chipCommand: string) => {
+    setCommand(chipCommand);
+    // Use a small delay to ensure focus is maintained
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
+  };
+
+  const handleRemoveChip = (chipCommand: string, event: any) => {
+    // Prevent chip press when clicking X
+    event.stopPropagation();
+    removeCommand(chipCommand);
+  };
+
+  const isCommandInHistory = (cmd: string): boolean => {
+    return history.includes(cmd);
   };
 
   const handleCancel = () => {
@@ -163,6 +195,7 @@ export default function TerminalScreen() {
       outputElements.push(
         <View key="cursor-line" style={styles.cursorLine}>
           <ThemedText style={[styles.outputText, { color: terminalPrompt }]}>{">"}</ThemedText>
+          {command && <ThemedText style={[styles.outputText, { color: terminalOutput, marginLeft: 4 }]}>{command}</ThemedText>}
           <TerminalCursor color={terminalPrompt} />
         </View>
       );
@@ -179,6 +212,7 @@ export default function TerminalScreen() {
           {!isExecuting && connectionState === "connected" && (
             <View style={[styles.cursorLine, { marginTop: 16 }]}>
               <ThemedText style={[styles.outputText, { color: terminalPrompt }]}>{">"}</ThemedText>
+              {command && <ThemedText style={[styles.outputText, { color: terminalOutput, marginLeft: 4 }]}>{command}</ThemedText>}
               <TerminalCursor color={terminalPrompt} />
             </View>
           )}
@@ -222,6 +256,44 @@ export default function TerminalScreen() {
             {renderOutput()}
           </ScrollView>
 
+          {/* Command Suggestions Chips */}
+          {getFilteredCommands(command).length > 0 && (
+            <View style={{ flexGrow: 0, flexShrink: 0 }}>
+              <ScrollView
+                horizontal
+                style={[styles.chipsContainer, { backgroundColor: terminalBackground, borderTopColor: terminalBorder }]}
+                contentContainerStyle={styles.chipsContent}
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {getFilteredCommands(command).map((cmd, index) => {
+                  const isHistory = isCommandInHistory(cmd);
+                  return (
+                    <TouchableOpacity
+                      key={`${cmd}-${index}`}
+                      style={[styles.chip, { backgroundColor: codeLineOdd, borderColor: terminalBorder }]}
+                      onPress={() => handleChipPress(cmd)}
+                      activeOpacity={0.7}
+                    >
+                      <ThemedText style={[styles.chipText, { color: terminalOutput }]} numberOfLines={1}>
+                        {cmd}
+                      </ThemedText>
+                      {isHistory && (
+                        <TouchableOpacity
+                          style={styles.chipDeleteButton}
+                          onPress={(e) => handleRemoveChip(cmd, e)}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                          <Ionicons name="close-circle" size={16} color={terminalError} />
+                        </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Input */}
           <View style={[styles.inputContainer, { backgroundColor: terminalBackground, borderTopColor: terminalBorder }]}>
             <ThemedText style={[styles.prompt, { color: terminalPrompt }]}>{">"}</ThemedText>
@@ -235,6 +307,8 @@ export default function TerminalScreen() {
               placeholderTextColor={terminalPlaceholder}
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="off"
+              spellCheck={false}
               returnKeyType="send"
               blurOnSubmit={false}
               keyboardType="default"
@@ -331,6 +405,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontStyle: "italic",
+  },
+  chipsContainer: {
+    borderTopWidth: 1,
+  },
+  chipsContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  chipText: {
+    fontFamily: Fonts.mono,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  chipDeleteButton: {
+    marginLeft: 2,
   },
   inputContainer: {
     flexDirection: "row",
